@@ -1,5 +1,3 @@
-use crate::merge;
-
 #[derive(PartialEq, Eq, Clone, Debug)]
 pub struct ListNode {
     pub val: i32,
@@ -13,18 +11,17 @@ impl ListNode {
             val,
         }
     }
-    fn new_chain(values: Vec<i32>) -> Self {
-        let mut prehead: ListNode = ListNode::new(-1);
+    fn new_chain(values: Vec<i32>) -> Box<ListNode> {
+        let mut prehead = ListNode::new(-1);
         let mut curr_node = &mut prehead;
-        for (i, value) in values.iter().enumerate() {
-            curr_node.val = *value;
-            if i != values.len() - 1 {
-                curr_node.next = Some(Box::new(ListNode::new(-1)));
-                curr_node = curr_node.next.as_mut().unwrap();
-            }
+
+        for value in values {
+            curr_node.next = Some(Box::new(ListNode::new(value)));
+            curr_node = curr_node.next.as_mut().unwrap();
         }
-        return prehead;
+        prehead.next.unwrap()
     }
+
     fn print(self) {
         let mut current = &self;
         print!("{}", current.val);
@@ -32,6 +29,15 @@ impl ListNode {
             print!("{}", node.val);
             current = node;
         }
+    }
+    fn to_vec(&self) -> Vec<i32> {
+        let mut result = vec![self.val];
+        let mut current = self;
+        while let Some(ref node) = current.next {
+            result.push(node.val);
+            current = node;
+        }
+        result
     }
 }
 pub fn merge_two_lists(
@@ -57,14 +63,9 @@ pub fn merge_two_lists(
 }
 
 pub fn test_merge_two_lists() {
-    let mut chain = ListNode::new_chain(vec![1, 2, 4]);
-    let mut chain2 = ListNode::new_chain(vec![1, 3, 4]);
-    println!("Trying to merge following");
-    chain.clone().print();
-    println!("");
-    chain2.clone().print();
-    println!("");
-    println!("Result");
-    let chain3 = merge_two_lists(Some(Box::new(chain)), Some(Box::new(chain2)));
-    chain3.unwrap().print();
+    let chain = ListNode::new_chain(vec![1, 2, 4]);
+    let chain2 = ListNode::new_chain(vec![1, 3, 4]);
+    let merged_list = merge_two_lists(Some(chain), Some(chain2));
+    let result = merged_list.unwrap().to_vec();
+    assert_eq!(result, vec![1, 1, 2, 3, 4, 4]);
 }

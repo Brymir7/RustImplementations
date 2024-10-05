@@ -1,4 +1,5 @@
 const ALPHABET_SIZE: u8 = u8::MAX;
+const PLACEHOLDER_ASCII: u8 = u8::MIN;
 struct TrieNode {
     curr_letter: u8,
     is_end_of_word: bool,
@@ -14,7 +15,7 @@ impl TrieNode {
     }
     fn placeholder() -> Self {
         TrieNode {
-            curr_letter: 0,
+            curr_letter: PLACEHOLDER_ASCII,
             children: None,
             is_end_of_word: false,
         }
@@ -26,7 +27,12 @@ impl TrieNode {
 struct Trie {
     root: TrieNode,
 }
-
+#[derive(PartialEq, Eq)]
+enum TrieSearchResult {
+    Nothing,
+    Prefix,
+    WholeWord,
+}
 impl Trie {
     fn new() -> Self {
         Trie {
@@ -50,49 +56,49 @@ impl Trie {
         }
     }
 
-    fn search(&self, word: String) -> bool {
+    fn bool_search(&self, word: String) -> bool {
+        return self.search(word) == TrieSearchResult::WholeWord;
+    }
+    fn search(&self, word: String) -> TrieSearchResult {
         let mut curr_layer = &self.root;
         for char in word.chars() {
             debug_assert!(char.is_ascii());
             let int_char = char as u8;
             if let Some(children) = &curr_layer.children {
                 let bucket = &children[int_char as usize];
-                if int_char > 0 && bucket.curr_letter != int_char {
-                    return false;
+                if int_char > PLACEHOLDER_ASCII && bucket.curr_letter != int_char {
+                    return TrieSearchResult::Nothing;
                 }
                 curr_layer = bucket;
             } else {
-                return false;
+                return TrieSearchResult::Nothing;
             }
         }
-        return curr_layer.is_end_of_word;
+        match curr_layer.is_end_of_word {
+            true => {
+                return TrieSearchResult::WholeWord;
+            }
+            false => {
+                return TrieSearchResult::Prefix;
+            }
+        };
     }
-
     fn starts_with(&self, prefix: String) -> bool {
-        let mut curr_layer = &self.root;
-        for char in prefix.chars() {
-            debug_assert!(char.is_ascii());
-            let int_char = char as u8;
-            if let Some(children) = &curr_layer.children {
-                let bucket = &children[int_char as usize];
-                if int_char > 0 && bucket.curr_letter != int_char {
-                    return false;
-                }
-                curr_layer = bucket;
-            } else {
-                return false;
-            }
+        let res = self.search(prefix);
+        match res {
+            TrieSearchResult::Nothing => false,
+            TrieSearchResult::Prefix => true,
+            TrieSearchResult::WholeWord => true,
         }
-        return true;
     }
 }
 
 pub fn test_trie() {
     let mut trie = Trie::new();
     trie.insert("apple".into());
-    debug_assert!(trie.search("apple".into())); // return True
-    debug_assert!(trie.search("app".into()) == false); // return False
+    debug_assert!(trie.bool_search("apple".into())); // return True
+    debug_assert!(trie.bool_search("app".into()) == false); // return False
     debug_assert!(trie.starts_with("app".into())); // return True
     trie.insert("app".into());
-    debug_assert!(trie.search("app".into())); // return True
+    debug_assert!(trie.bool_search("app".into())); // return True
 }
